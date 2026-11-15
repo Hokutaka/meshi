@@ -59,6 +59,27 @@ interface LedgerDao {
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun categoryCount(): Int
 
+    @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
+    suspend fun categoryById(id: String): Category?
+
+    @Query("SELECT * FROM categories WHERE kind = :kind ORDER BY sortOrder, label")
+    suspend fun categoriesByKind(kind: String): List<Category>
+
+    @Query("SELECT COUNT(*) FROM categories WHERE kind = :kind")
+    suspend fun countCategoriesByKind(kind: String): Int
+
+    @Query("SELECT COUNT(*) FROM categories WHERE kind = :kind AND label = :label COLLATE NOCASE AND id != :excludingId")
+    suspend fun countDuplicateCategories(kind: String, label: String, excludingId: String): Int
+
+    @Query("SELECT COUNT(*) FROM ledger_transactions WHERE categoryId = :categoryId")
+    suspend fun countTransactionsInCategory(categoryId: String): Int
+
+    @androidx.room.Update
+    suspend fun updateCategory(category: Category)
+
+    @Query("DELETE FROM categories WHERE id = :id")
+    suspend fun deleteCategory(id: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTransaction(transaction: LedgerTransaction)
 
