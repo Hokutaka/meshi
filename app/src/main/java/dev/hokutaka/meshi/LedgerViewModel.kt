@@ -79,6 +79,37 @@ class LedgerViewModel(private val repository: LedgerRepository) : ViewModel() {
         }
     }
 
+    fun addCategory(kind: String, name: String, done: () -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { repository.addCategory(kind, name) }
+                .onSuccess { done() }
+                .onFailure { _message.value = it.message ?: "カテゴリーの追加に失敗しました" }
+        }
+    }
+
+    fun renameCategory(id: String, name: String, done: () -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { repository.renameCategory(id, name) }
+                .onSuccess { done() }
+                .onFailure { _message.value = it.message ?: "カテゴリー名の変更に失敗しました" }
+        }
+    }
+
+    fun moveCategory(id: String, direction: Int) {
+        viewModelScope.launch {
+            runCatching { repository.moveCategory(id, direction) }
+                .onFailure { _message.value = it.message ?: "並び替えに失敗しました" }
+        }
+    }
+
+    fun removeCategory(id: String, done: () -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { repository.removeCategory(id) }
+                .onSuccess { done() }
+                .onFailure { _message.value = it.message ?: "カテゴリーを削除できませんでした" }
+        }
+    }
+
     fun clearMessage() { _message.value = null }
 
     class Factory(private val repository: LedgerRepository) : ViewModelProvider.Factory {
