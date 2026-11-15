@@ -40,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
+import dev.hokutaka.meshi.backup.BackupControls
+import dev.hokutaka.meshi.data.LedgerRepository
 import dev.hokutaka.meshi.data.Category
 import dev.hokutaka.meshi.data.LedgerTransaction
 import java.text.NumberFormat
@@ -54,7 +56,7 @@ class MainActivity : ComponentActivity() {
         val vm = ViewModelProvider(this, LedgerViewModel.Factory(repository))[LedgerViewModel::class.java]
         setContent {
             MaterialTheme {
-                Surface(Modifier.fillMaxSize()) { LedgerScreen(vm) }
+                Surface(Modifier.fillMaxSize()) { LedgerScreen(vm, repository) }
             }
         }
     }
@@ -64,7 +66,7 @@ private fun yen(amount: Long): String = "¥" + NumberFormat.getIntegerInstance(L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LedgerScreen(viewModel: LedgerViewModel) {
+private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepository) {
     val state by viewModel.state.collectAsState()
     val message by viewModel.message.collectAsState()
     var editing by remember { mutableStateOf<LedgerTransaction?>(null) }
@@ -102,6 +104,7 @@ private fun LedgerScreen(viewModel: LedgerViewModel) {
                 onClick = { editing = null; editorOpen = true },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("＋ 取引を追加") }
+            BackupControls(repository)
             Spacer(Modifier.height(12.dp))
             Text("取引履歴", style = MaterialTheme.typography.titleMedium)
             if (records.isEmpty()) {
