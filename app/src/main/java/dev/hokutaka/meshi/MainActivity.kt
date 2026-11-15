@@ -18,6 +18,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -65,7 +68,7 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
     val message by viewModel.message.collectAsState()
     var editing by remember { mutableStateOf<LedgerTransaction?>(null) }
     var editorOpen by remember { mutableStateOf(false) }
-    var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
     var categoryManagerOpen by rememberSaveable { mutableStateOf(false) }
     var deleteCandidate by remember { mutableStateOf<LedgerTransaction?>(null) }
     var month by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
@@ -77,7 +80,25 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
     val earned = records.filter { it.kind == "income" }.sumOf { it.amountYen }
     val categoryNames = state.categories.associateBy { it.id }
 
-    Scaffold { padding ->
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    icon = { Text("¥") },
+                    label = { Text("記録") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    icon = { Text("⚙") },
+                    label = { Text("設定") }
+                )
+            }
+        }
+    ) { padding ->
+        if (selectedTab == 0) {
         Column(Modifier.padding(padding).padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = { month = activeMonth.minusMonths(1).toString() }) { Text("‹ 前月") }
@@ -96,21 +117,10 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { editing = null; editorOpen = true },
-                    modifier = Modifier.weight(1f)
-                ) { Text("＋ 取引を追加") }
-                TextButton(onClick = { settingsOpen = !settingsOpen }) {
-                    Text(if (settingsOpen) "閉じる" else "設定")
-                }
-            }
-            if (settingsOpen) {
-                TextButton(onClick = { categoryManagerOpen = true }) {
-                    Text("カテゴリー管理")
-                }
-                BackupControls(repository)
-            }
+            Button(
+                onClick = { editing = null; editorOpen = true },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("＋ 取引を追加") }
             Spacer(Modifier.height(12.dp))
             Text("取引履歴", style = MaterialTheme.typography.titleMedium)
             if (records.isEmpty()) {
@@ -141,6 +151,18 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
                         }
                     }
                 }
+            }
+        }
+        } else {
+            Column(
+                Modifier.padding(padding).padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { categoryManagerOpen = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("カテゴリー管理") }
+                BackupControls(repository)
             }
         }
     }
