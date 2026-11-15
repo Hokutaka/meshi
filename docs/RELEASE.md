@@ -56,8 +56,8 @@ Base64は暗号化ではないので、生成した文字列も秘密として�
 ## 3. リリースを作る
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 `vX.Y.Z` 形式のタグをpushすると `.github/workflows/release.yml` が走る。署名済みAPKとSHA256SUMSをGitHub Releasesへ発行する。
@@ -78,4 +78,4 @@ git push origin v0.1.0
 
 ## 現状
 
-ワークフローは用意済みで、GitHub Secretsへの固定署名鍵登録はまだ必要。実機での「固定署名APK → 次の固定署名APK」更新テストも未実施。したがって現時点でデータ保持を実機保証する段階ではない。
+固定署名鍵とGitHub Secretsの登録は完了し、[v0.1.0](https://github.com/Hokutaka/meshi/releases/tag/v0.1.0) の署名済みAPKを公開済み。実機での「固定署名APK → 次の固定署名APK」更新テストは未実施。
