@@ -24,7 +24,7 @@ class BackupService(
         }
     }
 
-    suspend fun import(uri: Uri, password: CharArray) = withContext(Dispatchers.IO) {
+    suspend fun restoreFromFile(uri: Uri, password: CharArray) = withContext(Dispatchers.IO) {
         try {
             val encrypted = resolver.openInputStream(uri)?.use { input ->
                 val buffer = ByteArray(8192)
