@@ -1,6 +1,7 @@
 package dev.hokutaka.meshi.data
 
 import androidx.room.withTransaction
+import dev.hokutaka.meshi.backup.LedgerSnapshot
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -53,4 +54,20 @@ class LedgerRepository(private val database: LedgerDatabase) {
     }
 
     suspend fun delete(id: String) = dao.deleteTransaction(id)
+
+    suspend fun snapshot(): LedgerSnapshot = database.withTransaction {
+        LedgerSnapshot(
+            categories = dao.snapshotCategories(),
+            transactions = dao.snapshotTransactions()
+        )
+    }
+
+    // Validation is completed before this call. A failed insert rolls the
+    // entire replacement back, preserving the existing ledger.
+    suspend fun restore(snapshot: LedgerSnapshot) = database.withTransaction {
+        dao.deleteAllTransactions()
+        dao.deleteAllCategories()
+        dao.insertCategories(snapshot.categories)
+        dao.insertTransactions(snapshot.transactions)
+    }
 }
