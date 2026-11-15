@@ -78,4 +78,4 @@ git push origin v0.1.1
 
 ## 現状
 
-固定署名鍵とGitHub Secretsの登録は完了し、[v0.1.0](https://github.com/Hokutaka/meshi/releases/tag/v0.1.0) の署名済みAPKを公開済み。実機での「固定署名APK → 次の固定署名APK」更新テストは未実施。
+固定署名鍵とGitHub Secretsの登録は完了し、[v0.1.0](https://github.com/Hokutaka/meshi/releases/tag/v0.1.0) の署名済みAPKを公開済み。新しいリリースの公開前にCIで署名・アプリID・versionCodeを照合し、エミュレーターで旧APKから新APKへの上書きインストールを確認する。端末上の取引データ保持については実機での確認がまだ必要。
