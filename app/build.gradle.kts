@@ -86,4 +86,5 @@ dependencies {
     implementation("net.zetetic:sqlcipher-android:4.19.1@aar")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20250517")
 }

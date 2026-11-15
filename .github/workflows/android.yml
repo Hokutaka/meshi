@@ -36,5 +36,10 @@ jobs:
             echo "Unexpected INTERNET permission in APK"
             exit 1
           fi
+      - name: Inspect v1 Room schema for compatibility baseline
+        run: |
+          find app/schemas -type f -name '1.json' -print
+          cat app/schemas/dev.hokutaka.meshi.data.LedgerDatabase/1.json
+
       # CI debug signing keys are temporary on hosted runners.
       # Installable APKs are built with the persistent key by release.yml.

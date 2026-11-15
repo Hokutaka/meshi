@@ -1,0 +1,38 @@
+{
+  "format": "meshi-ledger",
+  "schemaVersion": 1,
+  "categories": [
+    {
+      "id": "food",
+      "label": "食費",
+      "kind": "expense",
+      "sortOrder": 0
+    },
+    {
+      "id": "salary",
+      "label": "給与",
+      "kind": "income",
+      "sortOrder": 0
+    }
+  ],
+  "transactions": [
+    {
+      "id": "v1-expense",
+      "kind": "expense",
+      "amountYen": 1250,
+      "dateEpochDay": 20000,
+      "categoryId": "food",
+      "note": "昼ごはん",
+      "createdAtMillis": 1728086400000
+    },
+    {
+      "id": "v1-income",
+      "kind": "income",
+      "amountYen": 250000,
+      "dateEpochDay": 20000,
+      "categoryId": "salary",
+      "note": "",
+      "createdAtMillis": 1728086400011
+    }
+  ]
+}
