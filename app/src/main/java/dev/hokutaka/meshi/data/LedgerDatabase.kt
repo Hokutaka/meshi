@@ -41,6 +41,21 @@ interface LedgerDao {
     @Query("SELECT * FROM categories ORDER BY kind, sortOrder, label")
     fun observeCategories(): Flow<List<Category>>
 
+    @Query("SELECT * FROM ledger_transactions ORDER BY dateEpochDay, id")
+    suspend fun snapshotTransactions(): List<LedgerTransaction>
+
+    @Query("SELECT * FROM categories ORDER BY kind, sortOrder, id")
+    suspend fun snapshotCategories(): List<Category>
+
+    @Query("DELETE FROM ledger_transactions")
+    suspend fun deleteAllTransactions()
+
+    @Query("DELETE FROM categories")
+    suspend fun deleteAllCategories()
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertTransactions(transactions: List<LedgerTransaction>)
+
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun categoryCount(): Int
 
