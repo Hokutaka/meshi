@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -46,6 +48,7 @@ import dev.hokutaka.meshi.data.LedgerRepository
 import dev.hokutaka.meshi.data.Category
 import dev.hokutaka.meshi.data.LedgerTransaction
 import dev.hokutaka.meshi.data.LedgerSummaries
+import dev.hokutaka.meshi.data.TransactionHistoryFilters
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.YearMonth
@@ -77,6 +80,8 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
     var deleteCandidate by remember { mutableStateOf<LedgerTransaction?>(null) }
     var month by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
     var categoryBreakdownOpen by rememberSaveable { mutableStateOf(false) }
+    var historyQuery by rememberSaveable { mutableStateOf("") }
+    var historyKind by rememberSaveable { mutableStateOf("all") }
     val activeMonth = YearMonth.parse(month)
     // Aggregate in memory: no database migrations or changes to saved transactions.
     val report = remember(state.transactions, state.categories, activeMonth) {
@@ -86,6 +91,9 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
     val spent = report.spentYen
     val earned = report.earnedYen
     val categoryNames = state.categories.associateBy { it.id }
+    val visibleRecords = remember(records, state.categories, historyQuery, historyKind) {
+        TransactionHistoryFilters.filter(records, state.categories, historyQuery, historyKind)
+    }
 
     Scaffold(
         bottomBar = {
@@ -162,11 +170,48 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
             ) { Text("＋ 取引を追加") }
             Spacer(Modifier.height(12.dp))
             Text("取引履歴", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = historyQuery,
+                    onValueChange = { historyQuery = it },
+                    label = { Text("メモ・カテゴリーを検索") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                if (historyQuery.isNotEmpty()) {
+                    TextButton(onClick = { historyQuery = "" }) { Text("消去") }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = historyKind == "all",
+                    onClick = { historyKind = "all" },
+                    label = { Text("すべて") }
+                )
+                FilterChip(
+                    selected = historyKind == "expense",
+                    onClick = { historyKind = "expense" },
+                    label = { Text("支出") }
+                )
+                FilterChip(
+                    selected = historyKind == "income",
+                    onClick = { historyKind = "income" },
+                    label = { Text("収入") }
+                )
+            }
             if (records.isEmpty()) {
                 Text("この月の記録はありません", modifier = Modifier.padding(top = 24.dp))
+            } else if (visibleRecords.isEmpty()) {
+                Text("条件に一致する記録はありません", modifier = Modifier.padding(top = 24.dp))
+                TextButton(onClick = { historyQuery = ""; historyKind = "all" }) {
+                    Text("絞り込みを解除")
+                }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(records, key = { it.id }) { entry ->
+                    items(visibleRecords, key = { it.id }) { entry ->
                         Card(Modifier.fillMaxWidth().clickable {
                             editing = entry
                             editorOpen = true
