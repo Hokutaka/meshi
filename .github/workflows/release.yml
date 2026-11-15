@@ -27,12 +27,11 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Verify tagged app version
+      - name: Validate release version
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
-          grep -Fq "versionName = \"$VERSION\"" app/build.gradle.kts || {
-            echo "app versionName must match the tag."
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "Use a version tag like v0.1.0."
             exit 1
           }
 
@@ -59,7 +58,11 @@ jobs:
           MESHI_RELEASE_STORE_PASSWORD: ${{ secrets.MESHI_RELEASE_STORE_PASSWORD }}
           MESHI_RELEASE_KEY_ALIAS: ${{ secrets.MESHI_RELEASE_KEY_ALIAS }}
           MESHI_RELEASE_KEY_PASSWORD: ${{ secrets.MESHI_RELEASE_KEY_PASSWORD }}
-        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER))
+          gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease \
+            -PmeshiVersionName="$VERSION" -PmeshiVersionCode="$VERSION_CODE"
 
       - name: Verify APK and prepare artifacts
         run: |
