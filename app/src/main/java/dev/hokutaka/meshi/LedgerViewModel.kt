@@ -64,7 +64,6 @@ class LedgerViewModel(private val repository: LedgerRepository) : ViewModel() {
             runCatching {
                 repository.save(existing, kind, value, parsedDate, categoryId, note)
             }.onSuccess {
-                _message.value = "保存しました"
                 done()
             }.onFailure {
                 _message.value = "保存できませんでした: " + it.message
@@ -75,7 +74,7 @@ class LedgerViewModel(private val repository: LedgerRepository) : ViewModel() {
     fun delete(transaction: LedgerTransaction) {
         viewModelScope.launch {
             runCatching { repository.delete(transaction.id) }
-                .onSuccess { _message.value = "削除しました" }
+                .onSuccess { }
                 .onFailure { _message.value = "削除できませんでした: " + it.message }
         }
     }
