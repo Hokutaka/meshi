@@ -11,8 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -42,6 +45,7 @@ import dev.hokutaka.meshi.ui.TransactionEditor
 import dev.hokutaka.meshi.data.LedgerRepository
 import dev.hokutaka.meshi.data.Category
 import dev.hokutaka.meshi.data.LedgerTransaction
+import dev.hokutaka.meshi.data.LedgerSummaries
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.YearMonth
@@ -72,12 +76,15 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
     var categoryManagerOpen by rememberSaveable { mutableStateOf(false) }
     var deleteCandidate by remember { mutableStateOf<LedgerTransaction?>(null) }
     var month by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
+    var categoryBreakdownOpen by rememberSaveable { mutableStateOf(false) }
     val activeMonth = YearMonth.parse(month)
-    val records = state.transactions.filter {
-        YearMonth.from(LocalDate.ofEpochDay(it.dateEpochDay)) == activeMonth
+    // Aggregate in memory: no database migrations or changes to saved transactions.
+    val report = remember(state.transactions, state.categories, activeMonth) {
+        LedgerSummaries.forMonth(state.transactions, state.categories, activeMonth)
     }
-    val spent = records.filter { it.kind == "expense" }.sumOf { it.amountYen }
-    val earned = records.filter { it.kind == "income" }.sumOf { it.amountYen }
+    val records = report.records
+    val spent = report.spentYen
+    val earned = report.earnedYen
     val categoryNames = state.categories.associateBy { it.id }
 
     Scaffold(
@@ -116,7 +123,39 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
                     Text("差引  " + yen(earned - spent))
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(4.dp))
+            TextButton(
+                onClick = { categoryBreakdownOpen = !categoryBreakdownOpen },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (categoryBreakdownOpen) "カテゴリー別支出を閉じる ▲" else "カテゴリー別支出を見る ▼")
+            }
+            if (categoryBreakdownOpen) {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .heightIn(max = 220.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (report.categoryExpenses.isEmpty()) {
+                            Text("この月の支出はありません")
+                        } else {
+                            report.categoryExpenses.forEach { item ->
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(item.label, modifier = Modifier.weight(1f))
+                                    Text(yen(item.amountYen), fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { editing = null; editorOpen = true },
                 modifier = Modifier.fillMaxWidth()
