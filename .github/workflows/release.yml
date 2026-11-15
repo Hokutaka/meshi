@@ -1,0 +1,82 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Verify tagged app version
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          grep -Fq "versionName = \"$VERSION\"" app/build.gradle.kts || {
+            echo "app versionName must match the tag."
+            exit 1
+          }
+
+      - name: Prepare release signing
+        env:
+          KEYSTORE_B64: ${{ secrets.MESHI_RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.MESHI_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MESHI_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.MESHI_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for value in "$KEYSTORE_B64" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            if [ -z "$value" ]; then
+              echo "Missing release signing secrets."
+              exit 1
+            fi
+          done
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/meshi-release.jks"
+          chmod 600 "$RUNNER_TEMP/meshi-release.jks"
+          echo "MESHI_RELEASE_KEYSTORE_FILE=$RUNNER_TEMP/meshi-release.jks" >> "$GITHUB_ENV"
+
+      - name: Test and build signed APK
+        env:
+          MESHI_RELEASE_STORE_PASSWORD: ${{ secrets.MESHI_RELEASE_STORE_PASSWORD }}
+          MESHI_RELEASE_KEY_ALIAS: ${{ secrets.MESHI_RELEASE_KEY_ALIAS }}
+          MESHI_RELEASE_KEY_PASSWORD: ${{ secrets.MESHI_RELEASE_KEY_PASSWORD }}
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease
+
+      - name: Verify APK and prepare artifacts
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions "$APK" > /tmp/meshi-permissions.txt
+          if grep -q 'android.permission.INTERNET' /tmp/meshi-permissions.txt; then
+            echo "Unexpected INTERNET permission."
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$APK" "dist/meshi-${GITHUB_REF_NAME}.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS)
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "meshi $GITHUB_REF_NAME" --generate-notes
