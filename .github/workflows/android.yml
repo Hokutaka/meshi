@@ -36,10 +36,15 @@ jobs:
             echo "Unexpected INTERNET permission in APK"
             exit 1
           fi
-      - name: Inspect v1 Room schema for compatibility baseline
+      - name: Verify committed Room schema is unchanged
         run: |
-          find app/schemas -type f -name '1.json' -print
-          cat app/schemas/dev.hokutaka.meshi.data.LedgerDatabase/1.json
+          set -euo pipefail
+          test -f app/schemas/dev.hokutaka.meshi.data.LedgerDatabase/1.json
+          git diff --exit-code -- app/schemas
+          if [ -n "$(git ls-files --others --exclude-standard app/schemas)" ]; then
+            echo "Uncommitted Room schema detected; commit generated schemas with migrations."
+            exit 1
+          fi
 
       # CI debug signing keys are temporary on hosted runners.
       # Installable APKs are built with the persistent key by release.yml.
