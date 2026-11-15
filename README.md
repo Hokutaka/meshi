@@ -52,4 +52,4 @@ Android SDK 36 とJDK 17を使用します。Android Studioで開き、Gradle同
 
 ## ライセンス
 
-未決定。
+[MIT License](LICENSE) © 2026 Hokutaka.
