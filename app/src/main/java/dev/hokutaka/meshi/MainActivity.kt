@@ -39,6 +39,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import dev.hokutaka.meshi.backup.BackupControls
+import dev.hokutaka.meshi.category.CategoryManager
 import dev.hokutaka.meshi.data.LedgerRepository
 import dev.hokutaka.meshi.data.Category
 import dev.hokutaka.meshi.data.LedgerTransaction
@@ -68,6 +69,8 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
     val message by viewModel.message.collectAsState()
     var editing by remember { mutableStateOf<LedgerTransaction?>(null) }
     var editorOpen by remember { mutableStateOf(false) }
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var categoryManagerOpen by rememberSaveable { mutableStateOf(false) }
     var deleteCandidate by remember { mutableStateOf<LedgerTransaction?>(null) }
     var month by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
     val activeMonth = YearMonth.parse(month)
@@ -97,11 +100,21 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = { editing = null; editorOpen = true },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("＋ 取引を追加") }
-            BackupControls(repository)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { editing = null; editorOpen = true },
+                    modifier = Modifier.weight(1f)
+                ) { Text("＋ 取引を追加") }
+                TextButton(onClick = { settingsOpen = !settingsOpen }) {
+                    Text(if (settingsOpen) "閉じる" else "設定")
+                }
+            }
+            if (settingsOpen) {
+                TextButton(onClick = { categoryManagerOpen = true }) {
+                    Text("カテゴリー管理")
+                }
+                BackupControls(repository)
+            }
             Spacer(Modifier.height(12.dp))
             Text("取引履歴", style = MaterialTheme.typography.titleMedium)
             if (records.isEmpty()) {
@@ -134,6 +147,14 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
                 }
             }
         }
+    }
+    if (categoryManagerOpen) {
+        CategoryManager(
+            viewModel = viewModel,
+            categories = state.categories,
+            usedCategoryIds = state.transactions.map { it.categoryId }.toSet(),
+            close = { categoryManagerOpen = false }
+        )
     }
     if (editorOpen) {
         TransactionEditor(
