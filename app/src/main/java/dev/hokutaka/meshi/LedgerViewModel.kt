@@ -43,30 +43,34 @@ class LedgerViewModel(private val repository: LedgerRepository) : ViewModel() {
         date: String,
         categoryId: String,
         note: String,
-        done: () -> Unit
+        done: (Boolean) -> Unit
     ) {
         val value = amount.trim().toLongOrNull()
         if (value == null || value <= 0) {
             _message.value = "金額は1円以上の整数で入力してください"
+            done(false)
             return
         }
         val parsedDate = try {
             LocalDate.parse(date.trim())
         } catch (_: Exception) {
             _message.value = "日付はYYYY-MM-DDで入力してください"
+            done(false)
             return
         }
         if (state.value.categories.none { it.id == categoryId && it.kind == kind }) {
             _message.value = "カテゴリーを選択してください"
+            done(false)
             return
         }
         viewModelScope.launch {
             runCatching {
                 repository.save(existing, kind, value, parsedDate, categoryId, note)
             }.onSuccess {
-                done()
+                done(true)
             }.onFailure {
                 _message.value = "保存できませんでした: " + it.message
+                done(false)
             }
         }
     }
