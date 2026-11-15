@@ -270,7 +270,8 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
         CategoryManager(
             viewModel = viewModel,
             categories = state.categories,
-            usedCategoryIds = state.transactions.map { it.categoryId }.toSet(),
+            usedCategoryIds = (state.transactions.map { it.categoryId } +
+                state.templates.map { it.categoryId }).toSet(),
             close = { categoryManagerOpen = false }
         )
     }
