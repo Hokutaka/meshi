@@ -2,8 +2,8 @@ name: Android Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - 'release/v0.1.0'
 
 permissions:
   contents: write
@@ -30,7 +30,7 @@ jobs:
       - name: Validate release version
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+          [[ "$GITHUB_REF_NAME" == "release/v0.1.0" ]] || {
             echo "Use a version tag like v0.1.0."
             exit 1
           }
@@ -59,7 +59,7 @@ jobs:
           MESHI_RELEASE_KEY_ALIAS: ${{ secrets.MESHI_RELEASE_KEY_ALIAS }}
           MESHI_RELEASE_KEY_PASSWORD: ${{ secrets.MESHI_RELEASE_KEY_PASSWORD }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="0.1.0"
           VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER))
           gradle --no-daemon :app:testDebugUnitTest :app:assembleRelease \
             -PmeshiVersionName="$VERSION" -PmeshiVersionCode="$VERSION_CODE"
@@ -76,10 +76,10 @@ jobs:
             exit 1
           fi
           mkdir -p dist
-          cp "$APK" "dist/meshi-${GITHUB_REF_NAME}.apk"
+          cp "$APK" "dist/meshi-v0.1.0.apk"
           (cd dist && sha256sum *.apk > SHA256SUMS)
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "meshi $GITHUB_REF_NAME" --generate-notes
+        run: gh release create v0.1.0 dist/* --target "$GITHUB_SHA" --title "meshi v0.1.0" --generate-notes
