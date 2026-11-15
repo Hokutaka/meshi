@@ -1,0 +1,27 @@
+name: Clean up completed release branch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify tag and delete obsolete release branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="repos/${GITHUB_REPOSITORY}"
+          BRANCH_SHA="$(gh api "$REPO/git/ref/heads/release/v0.1.0" --jq '.object.sha')"
+          TAG_SHA="$(gh api "$REPO/git/ref/tags/v0.1.0" --jq '.object.sha')"
+          if [[ "$BRANCH_SHA" != "$TAG_SHA" ]]; then
+            echo "Refusing cleanup: branch contains commits beyond the release tag."
+            exit 1
+          fi
+          gh api -X DELETE "$REPO/git/refs/heads/release/v0.1.0"
+          echo "Deleted release/v0.1.0; v0.1.0 tag is preserved."
