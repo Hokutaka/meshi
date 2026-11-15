@@ -166,7 +166,7 @@ fun BackupControls(repository: LedgerRepository) {
                     busy = true
                     scope.launch {
                         try {
-                            service.import(uri, secret)
+                            service.restoreFromFile(uri, secret)
                             status = "復元しました"
                         } catch (_: Exception) {
                             status = "復元できませんでした。ファイルとパスフレーズを確認してください。元の記録は保持されています"
