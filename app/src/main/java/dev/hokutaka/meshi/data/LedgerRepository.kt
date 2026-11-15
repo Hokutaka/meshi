@@ -11,6 +11,7 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     val transactions: Flow<List<LedgerTransaction>> = dao.observeTransactions()
     val categories: Flow<List<Category>> = dao.observeCategories()
+    val templates: Flow<List<EntryTemplate>> = dao.observeTemplates()
 
     suspend fun initialize() = database.withTransaction {
         if (dao.categoryCount() == 0) {
@@ -66,6 +67,9 @@ class LedgerRepository(private val database: LedgerDatabase) {
         require(dao.countTransactionsInCategory(id) == 0) {
             "取引に使われているカテゴリーは削除できません"
         }
+        require(dao.countTemplatesInCategory(id) == 0) {
+            "テンプレートに使われているカテゴリーは削除できません"
+        }
         require(dao.countCategoriesByKind(current.kind) > 1) {
             "カテゴリーは支出・収入それぞれに1つ以上必要です"
         }
@@ -103,10 +107,55 @@ class LedgerRepository(private val database: LedgerDatabase) {
 
     suspend fun delete(id: String) = dao.deleteTransaction(id)
 
+    suspend fun saveTemplate(
+        existing: EntryTemplate?,
+        name: String,
+        kind: String,
+        amountYen: Long,
+        categoryId: String,
+        note: String
+    ) = database.withTransaction {
+        val trimmedName = name.trim()
+        val trimmedNote = note.trim()
+        require(trimmedName.isNotEmpty() && trimmedName.length <= 40) {
+            "テンプレート名は1〜40文字で入力してください"
+        }
+        require(kind == "expense" || kind == "income") { "取引種別が正しくありません" }
+        require(amountYen in 1..1_000_000_000_000L) { "金額が正しくありません" }
+        require(trimmedNote.length <= 4096) { "メモが長すぎます" }
+        require(dao.categoryById(categoryId)?.kind == kind) {
+            "カテゴリーが見つからないか、取引種別と一致しません"
+        }
+        if (existing == null) {
+            require(dao.snapshotTemplates().size < 200) { "テンプレートは200件までです" }
+            dao.insertTemplates(listOf(EntryTemplate(
+                id = UUID.randomUUID().toString(),
+                name = trimmedName,
+                kind = kind,
+                amountYen = amountYen,
+                categoryId = categoryId,
+                note = trimmedNote,
+                sortOrder = (dao.maxTemplateSortOrder() ?: -1) + 1
+            )))
+        } else {
+            val current = dao.templateById(existing.id) ?: error("テンプレートが見つかりません")
+            dao.updateTemplate(current.copy(
+                name = trimmedName,
+                kind = kind,
+                amountYen = amountYen,
+                categoryId = categoryId,
+                note = trimmedNote
+            ))
+        }
+    }
+
+    suspend fun removeTemplate(id: String) = dao.deleteTemplate(id)
+
     suspend fun snapshot(): LedgerSnapshot = database.withTransaction {
         LedgerSnapshot(
             categories = dao.snapshotCategories(),
-            transactions = dao.snapshotTransactions()
+            transactions = dao.snapshotTransactions(),
+            templates = dao.snapshotTemplates()
         )
     }
 
@@ -114,8 +163,10 @@ class LedgerRepository(private val database: LedgerDatabase) {
     // entire replacement back, preserving the existing ledger.
     suspend fun restore(snapshot: LedgerSnapshot) = database.withTransaction {
         dao.deleteAllTransactions()
+        dao.deleteAllTemplates()
         dao.deleteAllCategories()
         dao.insertCategories(snapshot.categories)
         dao.insertTransactions(snapshot.transactions)
+        dao.insertTemplates(snapshot.templates)
     }
 }

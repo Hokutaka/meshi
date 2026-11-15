@@ -147,7 +147,7 @@ fun BackupControls(repository: LedgerRepository) {
             title = { Text("バックアップを復元") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("現在の取引とカテゴリーを、バックアップの内容ですべて置き換えます。")
+                    Text("現在の取引・カテゴリー・テンプレートを、バックアップの内容ですべて置き換えます。")
                     Text("復元前に現在のデータをバックアップすることをおすすめします。")
                     OutlinedTextField(
                         value = password,

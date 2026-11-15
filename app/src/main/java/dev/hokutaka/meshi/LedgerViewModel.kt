@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import dev.hokutaka.meshi.data.Category
+import dev.hokutaka.meshi.data.EntryTemplate
 import dev.hokutaka.meshi.data.LedgerRepository
 import dev.hokutaka.meshi.data.LedgerTransaction
 import java.time.LocalDate
@@ -16,14 +17,18 @@ import kotlinx.coroutines.launch
 
 data class LedgerUiState(
     val transactions: List<LedgerTransaction> = emptyList(),
-    val categories: List<Category> = emptyList()
+    val categories: List<Category> = emptyList(),
+    val templates: List<EntryTemplate> = emptyList()
 )
 
 class LedgerViewModel(private val repository: LedgerRepository) : ViewModel() {
     val state: StateFlow<LedgerUiState> = combine(
         repository.transactions,
-        repository.categories
-    ) { transactions, categories -> LedgerUiState(transactions, categories) }
+        repository.categories,
+        repository.templates
+    ) { transactions, categories, templates ->
+        LedgerUiState(transactions, categories, templates)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LedgerUiState())
 
     private val _message = MutableStateFlow<String?>(null)
@@ -111,6 +116,35 @@ class LedgerViewModel(private val repository: LedgerRepository) : ViewModel() {
             runCatching { repository.removeCategory(id) }
                 .onSuccess { done() }
                 .onFailure { _message.value = it.message ?: "カテゴリーを削除できませんでした" }
+        }
+    }
+
+    fun saveTemplate(
+        existing: EntryTemplate?,
+        name: String,
+        kind: String,
+        amount: String,
+        categoryId: String,
+        note: String,
+        done: () -> Unit
+    ) {
+        val value = amount.trim().toLongOrNull()
+        if (value == null) {
+            _message.value = "金額は1円以上の整数で入力してください"
+            return
+        }
+        viewModelScope.launch {
+            runCatching { repository.saveTemplate(existing, name, kind, value, categoryId, note) }
+                .onSuccess { done() }
+                .onFailure { _message.value = it.message ?: "テンプレートを保存できませんでした" }
+        }
+    }
+
+    fun removeTemplate(id: String, done: () -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { repository.removeTemplate(id) }
+                .onSuccess { done() }
+                .onFailure { _message.value = it.message ?: "テンプレートを削除できませんでした" }
         }
     }
 

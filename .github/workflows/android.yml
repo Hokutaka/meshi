@@ -42,6 +42,10 @@ jobs:
         run: |
           set -euo pipefail
           test -f app/schemas/dev.hokutaka.meshi.data.LedgerDatabase/1.json
+          # Print newly generated v2 schema to freeze after migration tests compile.
+          if [ -f app/schemas/dev.hokutaka.meshi.data.LedgerDatabase/2.json ]; then
+            cat app/schemas/dev.hokutaka.meshi.data.LedgerDatabase/2.json
+          fi
           git diff --exit-code -- app/schemas
           if [ -n "$(git ls-files --others --exclude-standard app/schemas)" ]; then
             echo "Uncommitted Room schema detected; commit generated schemas with migrations."

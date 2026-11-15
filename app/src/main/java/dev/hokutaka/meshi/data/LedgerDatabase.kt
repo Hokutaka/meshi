@@ -1,5 +1,6 @@
 package dev.hokutaka.meshi.data
 
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -33,6 +34,17 @@ data class Category(
     val sortOrder: Int
 )
 
+@Entity(tableName = "entry_templates")
+data class EntryTemplate(
+    @PrimaryKey val id: String,
+    val name: String,
+    val kind: String,
+    val amountYen: Long,
+    val categoryId: String,
+    val note: String,
+    val sortOrder: Int
+)
+
 @Dao
 interface LedgerDao {
     @Query("SELECT * FROM ledger_transactions ORDER BY dateEpochDay DESC, createdAtMillis DESC")
@@ -40,6 +52,33 @@ interface LedgerDao {
 
     @Query("SELECT * FROM categories ORDER BY kind, sortOrder, label")
     fun observeCategories(): Flow<List<Category>>
+
+    @Query("SELECT * FROM entry_templates ORDER BY sortOrder, name, id")
+    fun observeTemplates(): Flow<List<EntryTemplate>>
+
+    @Query("SELECT * FROM entry_templates ORDER BY sortOrder, name, id")
+    suspend fun snapshotTemplates(): List<EntryTemplate>
+
+    @Query("SELECT * FROM entry_templates WHERE id = :id LIMIT 1")
+    suspend fun templateById(id: String): EntryTemplate?
+
+    @Query("SELECT MAX(sortOrder) FROM entry_templates")
+    suspend fun maxTemplateSortOrder(): Int?
+
+    @Query("SELECT COUNT(*) FROM entry_templates WHERE categoryId = :categoryId")
+    suspend fun countTemplatesInCategory(categoryId: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertTemplates(templates: List<EntryTemplate>)
+
+    @androidx.room.Update
+    suspend fun updateTemplate(template: EntryTemplate)
+
+    @Query("DELETE FROM entry_templates WHERE id = :id")
+    suspend fun deleteTemplate(id: String)
+
+    @Query("DELETE FROM entry_templates")
+    suspend fun deleteAllTemplates()
 
     @Query("SELECT * FROM ledger_transactions ORDER BY dateEpochDay, id")
     suspend fun snapshotTransactions(): List<LedgerTransaction>
@@ -91,8 +130,9 @@ interface LedgerDao {
 }
 
 @Database(
-    entities = [LedgerTransaction::class, Category::class],
-    version = 1,
+    entities = [LedgerTransaction::class, Category::class, EntryTemplate::class],
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true
 )
 abstract class LedgerDatabase : RoomDatabase() {

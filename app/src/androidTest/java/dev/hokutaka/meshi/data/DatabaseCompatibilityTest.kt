@@ -80,6 +80,7 @@ class DatabaseCompatibilityTest {
                 val snapshot = LedgerRepository(reopened).snapshot()
                 assertEquals(2, snapshot.transactions.size)
                 assertEquals(2, snapshot.categories.size)
+                assertTrue(snapshot.templates.isEmpty())
                 assertEquals(1250L, snapshot.transactions.first().amountYen)
                 assertEquals("昼ごはん", snapshot.transactions.first().note)
                 assertEquals("food", snapshot.transactions.first().categoryId)
