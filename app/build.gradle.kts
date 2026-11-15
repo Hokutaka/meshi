@@ -93,5 +93,4 @@ dependencies {
     testImplementation("org.json:json:20250517")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
-    androidTestImplementation("androidx.room:room-testing:2.8.5")
 }
