@@ -37,17 +37,6 @@ object SnapshotCodec {
                 .put("sortOrder", c.sortOrder))
         }
         val transactions = JSONArray()
-        snapshot.templates.forEach { t ->
-            require(t.id.length in 1..maxIdChars && t.categoryId.length in 1..maxIdChars)
-            require(t.name.isNotBlank() && t.name.length <= 40)
-            require(t.kind == "income" || t.kind == "expense")
-            require(t.amountYen in 1..1_000_000_000_000L)
-            require(t.note.length <= maxNoteChars)
-            require(t.sortOrder in 0..100_000)
-            require(categories[t.categoryId]?.kind == t.kind) {
-                "テンプレートのカテゴリー参照が正しくありません"
-            }
-        }
         snapshot.transactions.forEach { t ->
             transactions.put(JSONObject()
                 .put("id", t.id)
