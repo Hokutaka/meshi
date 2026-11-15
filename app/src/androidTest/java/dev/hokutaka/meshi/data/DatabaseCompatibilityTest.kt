@@ -81,6 +81,12 @@ class DatabaseCompatibilityTest {
                 assertEquals(2, snapshot.transactions.size)
                 assertEquals(2, snapshot.categories.size)
                 assertTrue(snapshot.templates.isEmpty())
+                val newTemplate = EntryTemplate(
+                    id = "migration-test", name = "買い物", kind = "expense",
+                    amountYen = 1300L, categoryId = "food", note = "", sortOrder = 0
+                )
+                reopened.ledgerDao().insertTemplates(listOf(newTemplate))
+                assertEquals(listOf(newTemplate), reopened.ledgerDao().snapshotTemplates())
                 assertEquals(1250L, snapshot.transactions.first().amountYen)
                 assertEquals("昼ごはん", snapshot.transactions.first().note)
                 assertEquals("food", snapshot.transactions.first().categoryId)

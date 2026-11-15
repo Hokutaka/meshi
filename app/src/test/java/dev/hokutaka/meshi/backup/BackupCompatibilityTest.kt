@@ -34,6 +34,38 @@ class BackupCompatibilityTest {
         assertEquals("昼ごはん", restored.transactions[0].note)
     }
 
+    @Test fun templateRoundTripPreservesCurrentData() {
+        val old = SnapshotCodec.decode(oldSnapshotBytes())
+        val template = EntryTemplate(
+            id = "weekly-shopping",
+            name = "週末の買い物",
+            kind = "expense",
+            amountYen = 2500L,
+            categoryId = "food",
+            note = "スーパー",
+            sortOrder = 0
+        )
+        val current = old.copy(templates = listOf(template))
+        val decoded = SnapshotCodec.decode(SnapshotCodec.encode(current))
+        assertEquals(current, decoded)
+    }
+
+    @Test fun invalidTemplateCategoryCannotEnterBackup() {
+        val old = SnapshotCodec.decode(oldSnapshotBytes())
+        val template = EntryTemplate("bad", "誤り", "income", 100L, "food", "", 0)
+        assertThrows(IllegalArgumentException::class.java) {
+            SnapshotCodec.encode(old.copy(templates = listOf(template)))
+        }
+    }
+
+    @Test fun oldV1BackupCanBeUpgradedWithoutChangingTransactions() {
+        val old = SnapshotCodec.decode(oldSnapshotBytes())
+        val upgraded = SnapshotCodec.decode(SnapshotCodec.encode(old))
+        assertEquals(old.transactions, upgraded.transactions)
+        assertEquals(old.categories, upgraded.categories)
+        assertEquals(emptyList<EntryTemplate>(), upgraded.templates)
+    }
+
     @Test fun currentBackupWriterUsesVersionTwo() {
         val encoded = SnapshotCodec.encode(SnapshotCodec.decode(oldSnapshotBytes()))
         val json = JSONObject(encoded.toString(Charsets.UTF_8))
