@@ -7,6 +7,8 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+val releaseKeystorePath = System.getenv("MESHI_RELEASE_KEYSTORE_FILE")
+
 android {
     namespace = "dev.hokutaka.meshi"
     compileSdk = 36
@@ -20,10 +22,24 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseKeystorePath != null) {
+            create("meshiRelease") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = System.getenv("MESHI_RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("MESHI_RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("MESHI_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
+            if (releaseKeystorePath != null) {
+                signingConfig = signingConfigs.getByName("meshiRelease")
+            }
         }
     }
 
