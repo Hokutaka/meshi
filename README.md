@@ -17,7 +17,7 @@
 | Android UI | Kotlin / Jetpack Compose |
 | 画面状態 | ViewModel / StateFlow |
 | DB | Room (SQLite) |
-| DB暗号化 | SQLCipher（Roomとの統合を検証予定） |
+| DB暗号化 | SQLCipher |
 | 鍵管理 | Android Keystore |
 | 認証 | BiometricPrompt |
 | 設定 | DataStore |
@@ -30,7 +30,7 @@
 
 ## 開発状況
 
-設計中。次にAndroidアプリの雛形と暗号化DBの技術検証を行う。
+開発準備中。まず支出・収入を登録・編集・閲覧できるAndroidアプリを実装し、月次集計、データ保護、バックアップ、APK配布まで仕上げる。
 
 ## ライセンス
 
