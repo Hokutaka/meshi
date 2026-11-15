@@ -11,13 +11,11 @@ class MeshiApplication : Application() {
     val repository: LedgerRepository by lazy {
         System.loadLibrary("sqlcipher")
         val passphrase = DatabaseKeyManager(this).loadOrCreate()
-        try {
-            val database = Room.databaseBuilder(this, LedgerDatabase::class.java, "meshi.db")
-                .openHelperFactory(SupportOpenHelperFactory(passphrase))
-                .build()
-            LedgerRepository(database)
-        } finally {
-            passphrase.fill(0)
-        }
+        // SQLCipher holds this byte array for delayed opens and reopens.
+        // Clearing it before Room opens the file would make the DB unusable.
+        val database = Room.databaseBuilder(this, LedgerDatabase::class.java, "meshi.db")
+            .openHelperFactory(SupportOpenHelperFactory(passphrase))
+            .build()
+        LedgerRepository(database)
     }
 }
