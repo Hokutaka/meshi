@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -41,6 +42,7 @@ import java.time.LocalDate
  * The common path is amount → category → save.
  * Date and memo are available on demand; today's date is the default.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionEditor(
     existing: LedgerTransaction?,
