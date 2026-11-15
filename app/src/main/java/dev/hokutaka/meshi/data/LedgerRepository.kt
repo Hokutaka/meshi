@@ -29,6 +29,49 @@ class LedgerRepository(private val database: LedgerDatabase) {
         }
     }
 
+    suspend fun addCategory(kind: String, name: String) = database.withTransaction {
+        require(kind == "expense" || kind == "income") { "取引種別が正しくありません" }
+        val label = CategoryRules.normalizeLabel(name)
+        require(dao.countDuplicateCategories(kind, label, "") == 0) {
+            "同じ名前のカテゴリーがあります"
+        }
+        val siblings = dao.categoriesByKind(kind)
+        val order = (siblings.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        dao.insertCategories(listOf(Category(UUID.randomUUID().toString(), label, kind, order)))
+    }
+
+    suspend fun renameCategory(id: String, name: String) = database.withTransaction {
+        val current = dao.categoryById(id) ?: error("カテゴリーが見つかりません")
+        val label = CategoryRules.normalizeLabel(name)
+        require(dao.countDuplicateCategories(current.kind, label, id) == 0) {
+            "同じ名前のカテゴリーがあります"
+        }
+        dao.updateCategory(current.copy(label = label))
+    }
+
+    suspend fun moveCategory(id: String, direction: Int) = database.withTransaction {
+        val current = dao.categoryById(id) ?: error("カテゴリーが見つかりません")
+        val siblings = dao.categoriesByKind(current.kind)
+        val reordered = CategoryRules.reorder(siblings, id, direction)
+        reordered.forEach { updated ->
+            val old = siblings.first { it.id == updated.id }
+            if (updated.sortOrder != old.sortOrder) {
+                dao.updateCategory(updated)
+            }
+        }
+    }
+
+    suspend fun removeCategory(id: String) = database.withTransaction {
+        val current = dao.categoryById(id) ?: error("カテゴリーが見つかりません")
+        require(dao.countTransactionsInCategory(id) == 0) {
+            "取引に使われているカテゴリーは削除できません"
+        }
+        require(dao.countCategoriesByKind(current.kind) > 1) {
+            "カテゴリーは支出・収入それぞれに1つ以上必要です"
+        }
+        dao.deleteCategory(id)
+    }
+
     suspend fun save(
         existing: LedgerTransaction?,
         kind: String,
@@ -40,17 +83,22 @@ class LedgerRepository(private val database: LedgerDatabase) {
         require(kind == "expense" || kind == "income")
         require(amountYen > 0) { "金額は1円以上にしてください" }
         require(categoryId.isNotBlank())
-        dao.upsertTransaction(
-            LedgerTransaction(
-                id = existing?.id ?: UUID.randomUUID().toString(),
-                kind = kind,
-                amountYen = amountYen,
-                dateEpochDay = date.toEpochDay(),
-                categoryId = categoryId,
-                note = note.trim(),
-                createdAtMillis = existing?.createdAtMillis ?: System.currentTimeMillis()
+        database.withTransaction {
+            require(dao.categoryById(categoryId)?.kind == kind) {
+                "カテゴリーが見つからないか、取引種別と一致しません"
+            }
+            dao.upsertTransaction(
+                LedgerTransaction(
+                    id = existing?.id ?: UUID.randomUUID().toString(),
+                    kind = kind,
+                    amountYen = amountYen,
+                    dateEpochDay = date.toEpochDay(),
+                    categoryId = categoryId,
+                    note = note.trim(),
+                    createdAtMillis = existing?.createdAtMillis ?: System.currentTimeMillis()
+                )
             )
-        )
+        }
     }
 
     suspend fun delete(id: String) = dao.deleteTransaction(id)
