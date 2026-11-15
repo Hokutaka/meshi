@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.hokutaka.meshi.data.Category
 import dev.hokutaka.meshi.data.LedgerTransaction
+import dev.hokutaka.meshi.data.EntryTemplate
 import java.time.LocalDate
 
 /**
@@ -46,27 +47,32 @@ import java.time.LocalDate
 @Composable
 fun TransactionEditor(
     existing: LedgerTransaction?,
+    template: EntryTemplate? = null,
     categories: List<Category>,
     save: (kind: String, amount: String, date: String, categoryId: String, note: String,
            result: (Boolean) -> Unit) -> Unit,
     close: () -> Unit
 ) {
-    var kind by remember(existing?.id) { mutableStateOf(existing?.kind ?: "expense") }
-    var amount by remember(existing?.id) {
-        mutableStateOf(existing?.amountYen?.toString().orEmpty())
+    // The template only pre-fills a new record; it never overwrites existing entries.
+    val editKey = existing?.id ?: template?.id ?: "new"
+    var kind by remember(editKey) {
+        mutableStateOf(existing?.kind ?: template?.kind ?: "expense")
     }
-    var date by remember(existing?.id) {
+    var amount by remember(editKey) {
+        mutableStateOf((existing?.amountYen ?: template?.amountYen)?.toString().orEmpty())
+    }
+    var date by remember(editKey) {
         mutableStateOf(
             existing?.let { LocalDate.ofEpochDay(it.dateEpochDay).toString() }
                 ?: LocalDate.now().toString()
         )
     }
-    var categoryId by remember(existing?.id) {
-        mutableStateOf(existing?.categoryId.orEmpty())
+    var categoryId by remember(editKey) {
+        mutableStateOf(existing?.categoryId ?: template?.categoryId.orEmpty())
     }
-    var note by remember(existing?.id) { mutableStateOf(existing?.note.orEmpty()) }
-    var detailsExpanded by remember(existing?.id) { mutableStateOf(existing != null) }
-    var submitting by remember(existing?.id) { mutableStateOf(false) }
+    var note by remember(editKey) { mutableStateOf(existing?.note ?: template?.note.orEmpty()) }
+    var detailsExpanded by remember(editKey) { mutableStateOf(existing != null || !template?.note.isNullOrBlank()) }
+    var submitting by remember(editKey) { mutableStateOf(false) }
 
     val options = categories.filter { it.kind == kind }
         .sortedWith(compareBy<Category> { it.sortOrder }.thenBy { it.label })

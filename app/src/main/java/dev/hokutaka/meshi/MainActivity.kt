@@ -43,10 +43,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import dev.hokutaka.meshi.backup.BackupControls
 import dev.hokutaka.meshi.category.CategoryManager
+import dev.hokutaka.meshi.category.TemplateManager
 import dev.hokutaka.meshi.ui.TransactionEditor
 import dev.hokutaka.meshi.data.LedgerRepository
 import dev.hokutaka.meshi.data.Category
 import dev.hokutaka.meshi.data.LedgerTransaction
+import dev.hokutaka.meshi.data.EntryTemplate
 import dev.hokutaka.meshi.data.LedgerSummaries
 import dev.hokutaka.meshi.data.TransactionHistoryFilters
 import java.text.NumberFormat
@@ -75,6 +77,9 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
     val message by viewModel.message.collectAsState()
     var editing by remember { mutableStateOf<LedgerTransaction?>(null) }
     var editorOpen by remember { mutableStateOf(false) }
+    var templateForEntry by remember { mutableStateOf<EntryTemplate?>(null) }
+    var templatePickerOpen by rememberSaveable { mutableStateOf(false) }
+    var templateManagerOpen by rememberSaveable { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var categoryManagerOpen by rememberSaveable { mutableStateOf(false) }
     var deleteCandidate by remember { mutableStateOf<LedgerTransaction?>(null) }
@@ -165,9 +170,15 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
             }
             Spacer(Modifier.height(8.dp))
             Button(
-                onClick = { editing = null; editorOpen = true },
+                onClick = { editing = null; templateForEntry = null; editorOpen = true },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("＋ 取引を追加") }
+            if (state.templates.isNotEmpty()) {
+                TextButton(
+                    onClick = { templatePickerOpen = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("テンプレートから入力") }
+            }
             Spacer(Modifier.height(12.dp))
             Text("取引履歴", style = MaterialTheme.typography.titleMedium)
             Row(
@@ -214,6 +225,7 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
                     items(visibleRecords, key = { it.id }) { entry ->
                         Card(Modifier.fillMaxWidth().clickable {
                             editing = entry
+                            templateForEntry = null
                             editorOpen = true
                         }) {
                             Row(
@@ -246,6 +258,10 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
                     onClick = { categoryManagerOpen = true },
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("カテゴリー管理") }
+                OutlinedButton(
+                    onClick = { templateManagerOpen = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("テンプレート管理") }
                 BackupControls(repository)
             }
         }
@@ -258,9 +274,47 @@ private fun LedgerScreen(viewModel: LedgerViewModel, repository: LedgerRepositor
             close = { categoryManagerOpen = false }
         )
     }
+    if (templatePickerOpen) {
+        AlertDialog(
+            onDismissRequest = { templatePickerOpen = false },
+            title = { Text("テンプレートから入力") },
+            text = {
+                Column(
+                    Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    state.templates.forEach { template ->
+                        TextButton(
+                            onClick = {
+                                templateForEntry = template
+                                editing = null
+                                templatePickerOpen = false
+                                editorOpen = true
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(template.name + "  " + yen(template.amountYen))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { templatePickerOpen = false }) { Text("閉じる") }
+            }
+        )
+    }
+    if (templateManagerOpen) {
+        TemplateManager(
+            viewModel = viewModel,
+            templates = state.templates,
+            categories = state.categories,
+            close = { templateManagerOpen = false }
+        )
+    }
     if (editorOpen) {
         TransactionEditor(
             existing = editing,
+            template = templateForEntry,
             categories = state.categories,
             save = { kind, amount, date, category, note, result ->
                 viewModel.save(editing, kind, amount, date, category, note, result)
