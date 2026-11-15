@@ -3,7 +3,6 @@ package dev.hokutaka.meshi.backup
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** A frozen v1 snapshot from the first signed release's portable format. */
@@ -41,19 +40,19 @@ class BackupCompatibilityTest {
     }
 
     @Test fun futureVersionsMustNotBeSilentlyMisread() {
-        val future = oldSnapshotBytes().toString(Charsets.UTF_8)
-            .replace("\"schemaVersion\":1", "\"schemaVersion\":2")
+        val future = JSONObject(oldSnapshotBytes().toString(Charsets.UTF_8))
+            .put("schemaVersion", 2)
         assertThrows(IllegalArgumentException::class.java) {
-            SnapshotCodec.decode(future.toByteArray(Charsets.UTF_8))
+            SnapshotCodec.decode(future.toString().toByteArray(Charsets.UTF_8))
         }
     }
 
     @Test fun brokenCategoryReferencesAreRejectedBeforeRestore() {
-        val broken = oldSnapshotBytes().toString(Charsets.UTF_8)
-            .replace("\"categoryId\":\"food\"", "\"categoryId\":\"missing\"")
-        assertTrue(broken.contains("\"categoryId\":\"missing\""))
+        val broken = JSONObject(oldSnapshotBytes().toString(Charsets.UTF_8))
+        broken.getJSONArray("transactions").getJSONObject(0).put("categoryId", "missing")
+        assertEquals("missing", broken.getJSONArray("transactions").getJSONObject(0).getString("categoryId"))
         assertThrows(IllegalArgumentException::class.java) {
-            SnapshotCodec.decode(broken.toByteArray(Charsets.UTF_8))
+            SnapshotCodec.decode(broken.toString().toByteArray(Charsets.UTF_8))
         }
     }
 }
