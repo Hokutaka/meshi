@@ -40,7 +40,9 @@ Androidネイティブの個人用家計簿アプリ。
 
 Android SDK 36 とJDK 17を使用します。Android Studioで開き、Gradle同期後に `:app:assembleDebug` を実行します。CIではGradle 8.13を使用しています。
 
-APKのビルド検証状況は [Android CI](https://github.com/Hokutaka/meshi/actions/workflows/android.yml) で確認できます。成功したCIではdebug APKがArtifactとして添付されます。正式な署名済みリリースではありません。CIのdebug署名は継続利用を前提としていないため、家計データを保存する端末へ継続的に上書きインストールする用途には使用しないでください。
+ビルド検証状況は [Android CI](https://github.com/Hokutaka/meshi/actions/workflows/android.yml) で確認できます。CIのDebug APKは毎回異なる鍵で署名されることがあり、上書き更新に適さないため成果物として配布しません。
+
+更新用APKは **[Android Release](https://github.com/Hokutaka/meshi/actions/workflows/release.yml)** で固定署名鍵を使用してビルドします。初回だけ署名鍵・GitHub Secretsの設定が必要で、現時点では未設定です。既存のDebugアプリから移行するときは **先に暗号化バックアップを作成** してください。詳しくは [APKの更新とデータ引き継ぎ](docs/RELEASE.md) を参照。
 
 ## 設計ドキュメント
 
